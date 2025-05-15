@@ -1,16 +1,61 @@
 
-import React from 'react';
-import { CommentType } from '@/types';
+import React, { useState, useEffect } from 'react';
+import { CommentType, ReplyType } from '@/types';
 import { CommentItem } from './CommentItem';
 import { Skeleton } from '@/components/ui/skeleton';
+import { commentService } from '@/services/api';
+import { toast } from '@/components/ui/use-toast';
 
 interface CommentsListProps {
   comments: CommentType[] | undefined;
   jobId: string;
   loading?: boolean;
+  onRefresh?: () => void;
 }
 
-export const CommentsList: React.FC<CommentsListProps> = ({ comments, jobId, loading = false }) => {
+export const CommentsList: React.FC<CommentsListProps> = ({ 
+  comments: initialComments, 
+  jobId, 
+  loading = false,
+  onRefresh
+}) => {
+  const [comments, setComments] = useState<CommentType[] | undefined>(initialComments);
+
+  useEffect(() => {
+    setComments(initialComments);
+  }, [initialComments]);
+
+  const handleCommentDelete = (commentId: string) => {
+    // Actualizar la UI eliminando el comentario del estado
+    setComments(prevComments => 
+      prevComments?.filter(comment => comment.id !== commentId)
+    );
+    
+    // Notificar al componente padre para refrescar datos si es necesario
+    if (onRefresh) {
+      onRefresh();
+    }
+  };
+
+  const handleReplyAdded = (commentId: string, newReply: ReplyType) => {
+    // Actualizar la UI añadiendo la respuesta al comentario correspondiente
+    setComments(prevComments => 
+      prevComments?.map(comment => 
+        comment.id === commentId
+          ? {
+              ...comment,
+              replies: [...(comment.replies || []), newReply]
+            }
+          : comment
+      )
+    );
+    
+    // Notificar al componente padre para refrescar datos si es necesario
+    if (onRefresh) {
+      onRefresh();
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -40,7 +85,13 @@ export const CommentsList: React.FC<CommentsListProps> = ({ comments, jobId, loa
   return (
     <div className="space-y-6">
       {comments.map((comment) => (
-        <CommentItem key={comment.id} comment={comment} jobId={jobId} />
+        <CommentItem 
+          key={comment.id} 
+          comment={comment} 
+          jobId={jobId} 
+          onDelete={handleCommentDelete}
+          onReplyAdded={handleReplyAdded}
+        />
       ))}
     </div>
   );

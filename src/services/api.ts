@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { UserType, JobType, ChatType, MessageType, FileType } from '@/types';
+import { UserType, JobType, ChatType, MessageType, FileType, CommentType, ReplyType } from '@/types';
 
 // Configurando la instancia de axios
 const api = axios.create({
@@ -249,5 +249,41 @@ export const authService = {
   async verifyToken(): Promise<UserType> {
     const response = await api.get('/auth/verify');
     return response.data;
+  }
+};
+
+// Servicios de comentarios
+export const commentService = {
+  async getCommentsByJobId(jobId: string): Promise<CommentType[]> {
+    const response = await api.get(`/jobs/${jobId}/comments`);
+    return response.data;
+  },
+  
+  async addComment(jobId: string, content: string): Promise<CommentType> {
+    const response = await api.post(`/jobs/${jobId}/comments`, { content });
+    return response.data;
+  },
+  
+  async updateComment(commentId: string, content: string): Promise<CommentType> {
+    const response = await api.put(`/comments/${commentId}`, { content });
+    return response.data;
+  },
+  
+  async deleteComment(commentId: string): Promise<void> {
+    await api.delete(`/comments/${commentId}`);
+  },
+  
+  async addReply(commentId: string, content: string): Promise<ReplyType> {
+    const response = await api.post(`/comments/${commentId}/replies`, { content });
+    return response.data;
+  },
+  
+  async updateReply(replyId: string, content: string): Promise<ReplyType> {
+    const response = await api.put(`/replies/${replyId}`, { content });
+    return response.data;
+  },
+  
+  async deleteReply(replyId: string): Promise<void> {
+    await api.delete(`/replies/${replyId}`);
   }
 };

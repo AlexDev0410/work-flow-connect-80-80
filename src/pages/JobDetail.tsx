@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import MainLayout from '@/components/Layout/MainLayout';
@@ -14,10 +13,11 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { MessageCircle, Calendar, DollarSign, User } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
-import { JobType } from '@/types';
+import { JobType, CommentType } from '@/types';
 import { formatDate } from '@/lib/utils';
 import { CommentsList } from '@/components/Comments/CommentsList';
 import { Skeleton } from '@/components/ui/skeleton';
+import { commentService } from '@/services/api';
 
 const JobDetail = () => {
   // Hooks de React Router para obtener el ID de la propuesta y navegación
@@ -37,6 +37,7 @@ const JobDetail = () => {
   const [job, setJob] = useState<JobType | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [comments, setComments] = useState<CommentType[]>([]);
   
   console.log("JobDetail: jobId =", jobId);
   console.log("JobDetail: jobs disponibles =", jobs?.length || 0);
@@ -86,6 +87,32 @@ const JobDetail = () => {
     
     loadJobDetails();
   }, [jobId, getJobById, jobs]);
+
+  // Cargar comentarios del trabajo
+  useEffect(() => {
+    const loadComments = async () => {
+      if (!jobId) return;
+      
+      setIsLoadingComments(true);
+      try {
+        const commentsData = await commentService.getCommentsByJobId(jobId);
+        setComments(commentsData);
+      } catch (error) {
+        console.error("Error al cargar comentarios:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudieron cargar los comentarios. Inténtelo de nuevo."
+        });
+      } finally {
+        setIsLoadingComments(false);
+      }
+    };
+    
+    if (job) {
+      loadComments();
+    }
+  }, [jobId, job]);
 
   // Obtener información del propietario de la propuesta
   const jobOwner = job ? getUserById(job.userId) : undefined;
@@ -252,8 +279,12 @@ const JobDetail = () => {
     
     setIsSubmittingComment(true);
     try {
-      // Llamar a la función para añadir el comentario a la propuesta
-      await addComment(job.id, commentText);
+      // Usar el servicio de comentarios para añadir un nuevo comentario
+      const newComment = await commentService.addComment(job.id, commentText);
+      
+      // Actualizar la lista de comentarios
+      setComments(prevComments => [newComment, ...(prevComments || [])]);
+      
       setCommentText(''); // Limpiar el campo de comentario
       
       toast({
@@ -269,6 +300,18 @@ const JobDetail = () => {
       });
     } finally {
       setIsSubmittingComment(false);
+    }
+  };
+
+  // Función para refrescar los comentarios después de cambios
+  const refreshComments = async () => {
+    if (!jobId) return;
+    
+    try {
+      const updatedComments = await commentService.getCommentsByJobId(jobId);
+      setComments(updatedComments);
+    } catch (error) {
+      console.error("Error al refrescar comentarios:", error);
     }
   };
 
@@ -360,9 +403,10 @@ const JobDetail = () => {
                   <div className="mt-6">
                     <Separator className="mb-6" />
                     <CommentsList 
-                      comments={job.comments} 
-                      jobId={job.id}
+                      comments={comments} 
+                      jobId={job?.id || ''}
                       loading={isLoadingComments}
+                      onRefresh={refreshComments}
                     />
                   </div>
                 </CardContent>
