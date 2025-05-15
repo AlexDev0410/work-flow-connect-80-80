@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import MainLayout from '@/components/Layout/MainLayout';
@@ -18,6 +19,7 @@ import { formatDate } from '@/lib/utils';
 import { CommentsList } from '@/components/Comments/CommentsList';
 import { Skeleton } from '@/components/ui/skeleton';
 import { commentService } from '@/services/api';
+import { jobService } from '@/lib/jobService';
 
 const JobDetail = () => {
   // Hooks de React Router para obtener el ID de la propuesta y navegación
@@ -25,7 +27,7 @@ const JobDetail = () => {
   const navigate = useNavigate();
   
   // Hooks de contexto para acceder a datos y funcionalidades
-  const { getJobById, addComment, jobs } = useJobs(); 
+  const { getJobById, refreshJobs, jobs } = useJobs(); 
   const { currentUser } = useAuth(); // Información del usuario actual
   const { createPrivateChat } = useChat(); // Funcionalidades de chat
   const { getUserById } = useData(); // Para obtener datos de usuarios
@@ -42,7 +44,7 @@ const JobDetail = () => {
   console.log("JobDetail: jobId =", jobId);
   console.log("JobDetail: jobs disponibles =", jobs?.length || 0);
   
-  // Cargar trabajo cuando se monta el componente
+  // Cargar trabajo cuando se monta el componente o cuando cambia jobId o jobs
   useEffect(() => {
     const loadJobDetails = async () => {
       if (!jobId) {
@@ -52,25 +54,44 @@ const JobDetail = () => {
       }
       
       setIsLoading(true);
+      setError(null);
+      
       try {
-        // Intentar obtener el trabajo del caché local primero
-        const jobData = getJobById(jobId);
+        // Intentar obtener el trabajo primero del contexto de Jobs
+        let jobData = getJobById(jobId);
+        
+        // Si no está en el contexto, hacer una llamada a la API directamente
+        if (!jobData) {
+          console.log("Job not found in context, fetching from API directly");
+          jobData = await jobService.getJobById(jobId);
+        }
         
         if (jobData) {
-          console.log("Trabajo encontrado localmente:", jobData);
+          console.log("Trabajo encontrado:", jobData);
           console.log("Fecha de creación:", jobData.createdAt);
-          console.log("Nombre de usuario:", jobData.userName);
-          console.log("ID de usuario:", jobData.userId);
           
-          // Asegúrese de que la fecha sea un objeto Date válido
-          if (jobData.createdAt && typeof jobData.createdAt === 'string') {
-            jobData.createdAt = new Date(jobData.createdAt);
+          // Verificar que el trabajo tenga todas las propiedades necesarias
+          if (typeof jobData.createdAt === 'string') {
+            try {
+              // Verificar si la cadena de fecha es válida
+              new Date(jobData.createdAt);
+            } catch (e) {
+              console.error("Invalid date string for createdAt:", jobData.createdAt);
+              jobData.createdAt = new Date().toISOString();
+            }
+          } else if (!(jobData.createdAt instanceof Date) && !jobData.createdAt) {
+            console.log("Setting default createdAt");
+            jobData.createdAt = new Date().toISOString();
           }
           
           setJob(jobData);
+          setError(null);
         } else {
           console.error("Trabajo no encontrado");
           setError("No se pudo encontrar la propuesta solicitada");
+          
+          // Intentar actualizar los jobs en el contexto global
+          refreshJobs();
         }
       } catch (error) {
         console.error("Error al cargar trabajo:", error);
@@ -86,17 +107,18 @@ const JobDetail = () => {
     };
     
     loadJobDetails();
-  }, [jobId, getJobById, jobs]);
+  }, [jobId, getJobById, jobs, refreshJobs]);
 
   // Cargar comentarios del trabajo
   useEffect(() => {
     const loadComments = async () => {
-      if (!jobId) return;
+      if (!jobId || !job) return;
       
       setIsLoadingComments(true);
       try {
         const commentsData = await commentService.getCommentsByJobId(jobId);
-        setComments(commentsData);
+        console.log("Comentarios cargados:", commentsData);
+        setComments(commentsData || []);
       } catch (error) {
         console.error("Error al cargar comentarios:", error);
         toast({
@@ -104,6 +126,8 @@ const JobDetail = () => {
           title: "Error",
           description: "No se pudieron cargar los comentarios. Inténtelo de nuevo."
         });
+        // Set empty array to prevent UI errors
+        setComments([]);
       } finally {
         setIsLoadingComments(false);
       }
@@ -282,22 +306,45 @@ const JobDetail = () => {
       // Usar el servicio de comentarios para añadir un nuevo comentario
       const newComment = await commentService.addComment(job.id, commentText);
       
-      // Actualizar la lista de comentarios
-      setComments(prevComments => [newComment, ...(prevComments || [])]);
-      
-      setCommentText(''); // Limpiar el campo de comentario
-      
-      toast({
-        title: "Comentario enviado",
-        description: "Tu comentario ha sido publicado correctamente"
-      });
+      if (newComment) {
+        // Actualizar la lista de comentarios
+        setComments(prevComments => [newComment, ...(prevComments || [])]);
+        
+        setCommentText(''); // Limpiar el campo de comentario
+        
+        toast({
+          title: "Comentario enviado",
+          description: "Tu comentario ha sido publicado correctamente"
+        });
+      } else {
+        throw new Error("No se pudo crear el comentario");
+      }
     } catch (error) {
       console.error("Error al enviar comentario:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No se pudo enviar el comentario"
-      });
+      
+      // Intentar con el servicio alternativo si el primero falla
+      try {
+        const fallbackComment = await jobService.addComment(job.id, commentText);
+        
+        if (fallbackComment) {
+          setComments(prevComments => [fallbackComment, ...(prevComments || [])]);
+          setCommentText('');
+          
+          toast({
+            title: "Comentario enviado",
+            description: "Tu comentario ha sido publicado correctamente"
+          });
+        } else {
+          throw new Error("No se pudo crear el comentario (fallback)");
+        }
+      } catch (fallbackError) {
+        console.error("Error en fallback de comentario:", fallbackError);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudo enviar el comentario"
+        });
+      }
     } finally {
       setIsSubmittingComment(false);
     }
@@ -309,7 +356,7 @@ const JobDetail = () => {
     
     try {
       const updatedComments = await commentService.getCommentsByJobId(jobId);
-      setComments(updatedComments);
+      setComments(updatedComments || []);
     } catch (error) {
       console.error("Error al refrescar comentarios:", error);
     }

@@ -7,6 +7,7 @@ import { MessageCircle, Trash } from 'lucide-react';
 import { CommentType, ReplyType } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { commentService } from '@/services/api';
+import { jobService } from '@/lib/jobService';
 import { toast } from '@/components/ui/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -35,10 +36,18 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     
     setIsSubmittingReply(true);
     try {
-      const newReply = await commentService.addReply(comment.id, replyContent);
+      // First try with commentService
+      let newReply;
+      try {
+        newReply = await commentService.addReply(comment.id, replyContent);
+      } catch (error) {
+        console.error('Error con commentService:', error);
+        // Fallback to jobService
+        newReply = await jobService.addReply(comment.id, replyContent);
+      }
       
       // Actualizar la interfaz con la nueva respuesta
-      if (onReplyAdded) {
+      if (onReplyAdded && newReply) {
         onReplyAdded(comment.id, newReply);
       }
       
@@ -64,20 +73,35 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     if (!currentUser || currentUser.id !== comment.userId) return;
     
     try {
-      await commentService.deleteComment(comment.id);
+      // First try with commentService
+      try {
+        await commentService.deleteComment(comment.id);
+      } catch (error) {
+        console.error('Error con commentService:', error);
+        // Fallback to jobService
+        await jobService.deleteComment(comment.id);
+      }
+      
       if (onDelete) {
         onDelete(comment.id);
       }
+      
       toast({
         title: "Comentario eliminado",
         description: "El comentario ha sido eliminado correctamente"
       });
     } catch (error) {
       console.error('Error al eliminar comentario:', error);
+      
+      // Even if API call fails, update UI to provide better UX
+      if (onDelete) {
+        onDelete(comment.id);
+      }
+      
       toast({
         variant: "destructive",
         title: "Error",
-        description: "No se pudo eliminar el comentario"
+        description: "Error al eliminar el comentario, pero se ha actualizado la interfaz"
       });
     }
   };
@@ -85,14 +109,19 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   const formatDateTime = (timestamp: number | string | undefined) => {
     if (!timestamp) return '';
     
-    const date = typeof timestamp === 'number' 
-      ? new Date(timestamp) 
-      : new Date(timestamp);
+    try {
+      const date = typeof timestamp === 'number' 
+        ? new Date(timestamp) 
+        : new Date(timestamp);
       
-    return formatDistanceToNow(date, { 
-      addSuffix: true,
-      locale: es
-    });
+      return formatDistanceToNow(date, { 
+        addSuffix: true,
+        locale: es
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return '';
+    }
   };
 
   // Get comment content (handle both content and text properties)

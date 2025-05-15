@@ -57,12 +57,23 @@ export const JobProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const allJobs = await jobService.getAllJobs();
       
+      if (!allJobs || allJobs.length === 0) {
+        console.log("No jobs found or empty array returned");
+        setJobs([]);
+        setFilteredJobs([]);
+        setPopularJobs([]);
+        setUserJobs([]);
+        return;
+      }
+      
       // Ensure all job objects have the required properties
       const processedJobs = allJobs.map(job => ({
         ...job,
         // Convert dates to strings if they're Date objects
-        createdAt: job.createdAt instanceof Date ? job.createdAt.toISOString() : job.createdAt,
-        updatedAt: job.updatedAt instanceof Date ? job.updatedAt.toISOString() : job.updatedAt,
+        createdAt: job.createdAt instanceof Date ? job.createdAt.toISOString() : 
+                 (typeof job.createdAt === 'string' ? job.createdAt : new Date().toISOString()),
+        updatedAt: job.updatedAt instanceof Date ? job.updatedAt.toISOString() : 
+                 (typeof job.updatedAt === 'string' ? job.updatedAt : new Date().toISOString()),
         // Ensure userName is present
         userName: job.userName || 'Usuario desconocido',
         // Initialize comments array if it doesn't exist
@@ -74,22 +85,29 @@ export const JobProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (currentUser) {
         const userJobsData = await jobService.getJobsByUser(currentUser.id);
-        // Process dates for user jobs
-        const processedUserJobs = userJobsData.map(job => ({
-          ...job,
-          createdAt: job.createdAt instanceof Date ? job.createdAt.toISOString() : job.createdAt,
-          updatedAt: job.updatedAt instanceof Date ? job.updatedAt.toISOString() : job.updatedAt,
-          userName: job.userName || 'Usuario desconocido',
-          comments: job.comments || []
-        }));
-        setUserJobs(processedUserJobs);
+        
+        if (userJobsData && userJobsData.length > 0) {
+          // Process dates for user jobs
+          const processedUserJobs = userJobsData.map(job => ({
+            ...job,
+            createdAt: job.createdAt instanceof Date ? job.createdAt.toISOString() : 
+                     (typeof job.createdAt === 'string' ? job.createdAt : new Date().toISOString()),
+            updatedAt: job.updatedAt instanceof Date ? job.updatedAt.toISOString() : 
+                     (typeof job.updatedAt === 'string' ? job.updatedAt : new Date().toISOString()),
+            userName: job.userName || 'Usuario desconocido',
+            comments: job.comments || []
+          }));
+          setUserJobs(processedUserJobs);
+        } else {
+          setUserJobs([]);
+        }
 
         // Set saved jobs (placeholder implementation)
         setSavedJobs([]);
       }
 
-      // For popular jobs, show the 3 most recent jobs
-      const popularJobsTemp = processedJobs.slice(0, 3);
+      // For popular jobs, show the 3 most recent jobs or fewer if not enough
+      const popularJobsTemp = processedJobs.slice(0, Math.min(3, processedJobs.length));
       setPopularJobs(popularJobsTemp);
     } catch (error) {
       console.error("Error fetching jobs:", error);
@@ -98,12 +116,18 @@ export const JobProvider = ({ children }: { children: React.ReactNode }) => {
         title: "Error",
         description: "Error al cargar los trabajos."
       });
+      // Set empty arrays to prevent UI errors
+      setJobs([]);
+      setFilteredJobs([]);
+      setPopularJobs([]);
+      setUserJobs([]);
     } finally {
       setLoading(false);
     }
   };
 
   const getJobById = (id: string) => {
+    if (!id) return undefined;
     return jobs.find(job => job.id === id);
   };
 
@@ -203,6 +227,10 @@ export const JobProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const comment = await jobService.addComment(jobId, text);
       
+      if (!comment) {
+        throw new Error("No se pudo crear el comentario");
+      }
+      
       // Update the jobs state with the new comment
       setJobs(prevJobs => {
         return prevJobs.map(job => {
@@ -242,6 +270,10 @@ export const JobProvider = ({ children }: { children: React.ReactNode }) => {
 
     try {
       const reply = await jobService.addReply(commentId, text);
+      
+      if (!reply) {
+        throw new Error("No se pudo crear la respuesta");
+      }
       
       // Update the jobs state with the new reply
       setJobs(prevJobs => {

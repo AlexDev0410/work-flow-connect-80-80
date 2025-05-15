@@ -72,14 +72,14 @@ export interface JobType {
 export interface CommentType {
   id: string;
   content: string;
-  text?: string;  // Added for compatibility
+  text?: string;  // For compatibility
   userId: string;
   jobId: string;
   createdAt: string;
   updatedAt?: string;
   userName?: string;
   userPhoto?: string;
-  userAvatar?: string;
+  userAvatar?: string;  // For compatibility
   timestamp?: number | string;
   replies?: ReplyType[];
 }
@@ -87,14 +87,14 @@ export interface CommentType {
 export interface ReplyType {
   id: string;
   content: string;
-  text?: string;  // Added for compatibility
+  text?: string;  // For compatibility
   userId: string;
   commentId: string;
   createdAt: string;
   updatedAt?: string;
   userName?: string;
   userPhoto?: string;
-  userAvatar?: string;
+  userAvatar?: string;  // For compatibility
   timestamp?: number | string;
 }
 

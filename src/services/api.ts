@@ -255,35 +255,87 @@ export const authService = {
 // Servicios de comentarios
 export const commentService = {
   async getCommentsByJobId(jobId: string): Promise<CommentType[]> {
-    const response = await api.get(`/jobs/${jobId}/comments`);
-    return response.data;
+    try {
+      const response = await api.get(`/jobs/${jobId}/comments`);
+      
+      if (response.data && response.data.comments) {
+        return response.data.comments;
+      } else {
+        console.log("Got response but no comments:", response.data);
+        return [];
+      }
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      // Return empty array instead of throwing to prevent UI errors
+      return [];
+    }
   },
   
   async addComment(jobId: string, content: string): Promise<CommentType> {
-    const response = await api.post(`/jobs/${jobId}/comments`, { content });
-    return response.data;
+    try {
+      const response = await api.post(`/jobs/${jobId}/comments`, { content });
+      
+      if (response.data && response.data.comment) {
+        return response.data.comment;
+      } else {
+        throw new Error("API returned invalid comment format");
+      }
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      throw error;
+    }
   },
   
   async updateComment(commentId: string, content: string): Promise<CommentType> {
-    const response = await api.put(`/comments/${commentId}`, { content });
-    return response.data;
+    try {
+      const response = await api.put(`/comments/${commentId}`, { content });
+      return response.data;
+    } catch (error) {
+      console.error("Error updating comment:", error);
+      throw error;
+    }
   },
   
   async deleteComment(commentId: string): Promise<void> {
-    await api.delete(`/comments/${commentId}`);
+    try {
+      await api.delete(`/comments/${commentId}`);
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      throw error;
+    }
   },
   
   async addReply(commentId: string, content: string): Promise<ReplyType> {
-    const response = await api.post(`/comments/${commentId}/replies`, { content });
-    return response.data;
+    try {
+      const response = await api.post(`/comments/${commentId}/replies`, { content });
+      
+      if (response.data && response.data.reply) {
+        return response.data.reply;
+      } else {
+        throw new Error("API returned invalid reply format");
+      }
+    } catch (error) {
+      console.error("Error adding reply:", error);
+      throw error;
+    }
   },
   
   async updateReply(replyId: string, content: string): Promise<ReplyType> {
-    const response = await api.put(`/replies/${replyId}`, { content });
-    return response.data;
+    try {
+      const response = await api.put(`/replies/${replyId}`, { content });
+      return response.data;
+    } catch (error) {
+      console.error("Error updating reply:", error);
+      throw error;
+    }
   },
   
   async deleteReply(replyId: string): Promise<void> {
-    await api.delete(`/replies/${replyId}`);
+    try {
+      await api.delete(`/replies/${replyId}`);
+    } catch (error) {
+      console.error("Error deleting reply:", error);
+      throw error;
+    }
   }
 };

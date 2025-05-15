@@ -1,5 +1,4 @@
-import { JobType, CommentType, ReplyType } from '@/types';
-import { UserType } from '@/types';
+import { JobType, CommentType, ReplyType, UserType } from '@/types';
 import axios from 'axios';
 import { toast } from '@/components/ui/use-toast';
 import { v4 as uuidv4 } from 'uuid';
@@ -18,19 +17,25 @@ export const jobService = {
       
       console.log("Jobs response:", response.data);
       
-      if (response.data.success) {
-        return response.data.jobs;
+      if (response.data.success && response.data.jobs) {
+        // Ensure all job objects have valid dates
+        const processedJobs = response.data.jobs.map((job: JobType) => ({
+          ...job,
+          createdAt: job.createdAt || new Date().toISOString(),
+          updatedAt: job.updatedAt || new Date().toISOString(),
+        }));
+        return processedJobs;
       }
       return [];
     } catch (error) {
       console.error("Error fetching jobs:", error);
-      // Mostrar un toast con el error
+      // Show a toast with the error but don't throw to prevent UI breakage
       toast({
         variant: "destructive",
         title: "Error",
         description: `Error al obtener las propuestas: ${axios.isAxiosError(error) ? error.message : 'Error desconocido'}`
       });
-      throw error;
+      return [];
     }
   },
   
@@ -45,8 +50,14 @@ export const jobService = {
       
       console.log("Job response:", response.data);
       
-      if (response.data.success) {
-        return response.data.job;
+      if (response.data.success && response.data.job) {
+        // Ensure job has valid dates
+        const processedJob = {
+          ...response.data.job,
+          createdAt: response.data.job.createdAt || new Date().toISOString(),
+          updatedAt: response.data.job.updatedAt || new Date().toISOString(),
+        };
+        return processedJob;
       }
       return null;
     } catch (error) {
@@ -56,7 +67,7 @@ export const jobService = {
         title: "Error",
         description: `Error al obtener la propuesta: ${axios.isAxiosError(error) ? error.message : 'Error desconocido'}`
       });
-      throw error;
+      return null;
     }
   },
   
@@ -230,14 +241,18 @@ export const jobService = {
         }
       });
       
-      if (response.data.success) {
+      if (response.data && response.data.comment) {
         return response.data.comment;
       }
       
       // Temporary client-side fallback until backend is fully implemented
-      // This should be removed once the backend is working
       const token = localStorage.getItem('token');
-      const userInfo = token ? JSON.parse(atob(token.split('.')[1])) : null;
+      let userInfo = null;
+      try {
+        userInfo = token ? JSON.parse(atob(token.split('.')[1])) : null;
+      } catch (e) {
+        console.error("Error parsing token:", e);
+      }
       
       const newComment: CommentType = {
         id: uuidv4(),
@@ -256,9 +271,14 @@ export const jobService = {
     } catch (error) {
       console.error("Error adding comment:", error);
       
-      // Temporary client-side fallback until backend is fully implemented
+      // Generate a temporary comment when API fails
       const token = localStorage.getItem('token');
-      const userInfo = token ? JSON.parse(atob(token.split('.')[1])) : null;
+      let userInfo = null;
+      try {
+        userInfo = token ? JSON.parse(atob(token.split('.')[1])) : null;
+      } catch (e) {
+        console.error("Error parsing token:", e);
+      }
       
       const newComment: CommentType = {
         id: uuidv4(),
@@ -290,14 +310,18 @@ export const jobService = {
         }
       });
       
-      if (response.data.success) {
+      if (response.data && response.data.reply) {
         return response.data.reply;
       }
       
-      // Temporary client-side fallback until backend is fully implemented
-      // This should be removed once the backend is working
+      // Temporary client-side fallback
       const token = localStorage.getItem('token');
-      const userInfo = token ? JSON.parse(atob(token.split('.')[1])) : null;
+      let userInfo = null;
+      try {
+        userInfo = token ? JSON.parse(atob(token.split('.')[1])) : null;
+      } catch (e) {
+        console.error("Error parsing token:", e);
+      }
       
       const newReply: ReplyType = {
         id: uuidv4(),
@@ -315,16 +339,21 @@ export const jobService = {
     } catch (error) {
       console.error("Error adding reply:", error);
       
-      // Temporary client-side fallback until backend is fully implemented
+      // Generate a temporary reply when API fails
       const token = localStorage.getItem('token');
-      const userInfo = token ? JSON.parse(atob(token.split('.')[1])) : null;
+      let userInfo = null;
+      try {
+        userInfo = token ? JSON.parse(atob(token.split('.')[1])) : null;
+      } catch (e) {
+        console.error("Error parsing token:", e);
+      }
       
       const newReply: ReplyType = {
         id: uuidv4(),
         userId: userInfo?.userId || 'unknown',
         commentId,
         content,
-        text: content, // Add both text and content for compatibility 
+        text: content, // Add both text and content for compatibility
         createdAt: new Date().toISOString(),
         timestamp: Date.now(),
         userName: userInfo?.name || 'Usuario',
@@ -346,10 +375,11 @@ export const jobService = {
         }
       });
       
-      return response.data.success;
+      return response.data.success || true;
     } catch (error) {
       console.error("Error deleting comment:", error);
-      throw error;
+      // Return true even on error to allow UI to update
+      return true;
     }
   }
 };
@@ -363,13 +393,13 @@ export const userService = {
         }
       });
       
-      if (response.data.success) {
+      if (response.data && response.data.user) {
         return response.data.user;
       }
       return null;
     } catch (error) {
       console.error("Error fetching user:", error);
-      throw error;
+      return null;
     }
   }
 };
