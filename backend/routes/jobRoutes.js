@@ -27,7 +27,10 @@ router.delete('/:jobId', jobController.deleteJob);
 router.post('/:jobId/comments', jobController.addComment);
 router.get('/:jobId/comments', jobController.getComments);
 router.delete('/comments/:commentId', jobController.deleteComment);
+
+// Reply routes
 router.post('/comments/:commentId/replies', jobController.addReply);
+router.get('/comments/:commentId/replies', jobController.getRepliesByCommentId);
 router.delete('/replies/:replyId', jobController.deleteReply);
 
 // Añadir este log para depuración

@@ -1,3 +1,4 @@
+
 import { api } from '@/services/api';
 import { JobType, CommentType, ReplyType } from '@/types';
 
@@ -85,7 +86,7 @@ export const jobService = {
 
   async deleteComment(commentId: string): Promise<boolean> {
     try {
-      await api.delete(`/comments/${commentId}`);
+      await api.delete(`/jobs/comments/${commentId}`);
       return true;
     } catch (error) {
       console.error('Error deleting comment:', error);
@@ -95,17 +96,31 @@ export const jobService = {
 
   async addReply(commentId: string, content: string): Promise<ReplyType> {
     try {
-      const response = await api.post(`/comments/${commentId}/replies`, { content });
-      return response.data.reply;
+      const response = await api.post(`/jobs/comments/${commentId}/replies`, { content });
+      if (response.data && response.data.reply) {
+        return response.data.reply;
+      } else {
+        throw new Error('No se recibió respuesta válida del servidor');
+      }
     } catch (error) {
       console.error('Error adding reply:', error);
       throw error;
     }
   },
 
+  async getRepliesByCommentId(commentId: string): Promise<ReplyType[]> {
+    try {
+      const response = await api.get(`/jobs/comments/${commentId}/replies`);
+      return response.data.replies || [];
+    } catch (error) {
+      console.error('Error fetching replies:', error);
+      return [];
+    }
+  },
+
   async deleteReply(replyId: string): Promise<boolean> {
     try {
-      await api.delete(`/replies/${replyId}`);
+      await api.delete(`/jobs/replies/${replyId}`);
       return true;
     } catch (error) {
       console.error('Error deleting reply:', error);

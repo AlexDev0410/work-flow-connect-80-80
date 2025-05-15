@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { UserType, JobType, ChatType, MessageType, FileType, CommentType, ReplyType } from '@/types';
 
@@ -299,7 +298,7 @@ export const commentService = {
   
   async deleteComment(commentId: string): Promise<void> {
     try {
-      await api.delete(`/comments/${commentId}`);
+      await api.delete(`/jobs/comments/${commentId}`);
     } catch (error) {
       console.error("Error deleting comment:", error);
       throw error;
@@ -308,7 +307,7 @@ export const commentService = {
   
   async addReply(commentId: string, content: string): Promise<ReplyType> {
     try {
-      const response = await api.post(`/comments/${commentId}/replies`, { content });
+      const response = await api.post(`/jobs/comments/${commentId}/replies`, { content });
       
       if (response.data && response.data.reply) {
         return response.data.reply;
@@ -333,7 +332,7 @@ export const commentService = {
   
   async deleteReply(replyId: string): Promise<void> {
     try {
-      await api.delete(`/replies/${replyId}`);
+      await api.delete(`/jobs/replies/${replyId}`);
     } catch (error) {
       console.error("Error deleting reply:", error);
       throw error;

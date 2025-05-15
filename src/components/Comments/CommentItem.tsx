@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { MessageCircle, Trash } from 'lucide-react';
 import { CommentType, ReplyType } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
-import { commentService } from '@/services/api';
+import { commentService, jobService } from '@/services/api';
 import { toast } from '@/components/ui/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -34,7 +35,8 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     
     setIsSubmittingReply(true);
     try {
-      const newReply = await commentService.addReply(comment.id, replyContent);
+      // Usar jobService en lugar de commentService
+      const newReply = await jobService.addReply(comment.id, replyContent);
       
       // Actualizar la interfaz con la nueva respuesta
       if (onReplyAdded && newReply) {
@@ -63,7 +65,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     if (!currentUser || currentUser.id !== comment.userId) return;
     
     try {
-      await commentService.deleteComment(comment.id);
+      await jobService.deleteComment(comment.id);
       
       if (onDelete) {
         onDelete(comment.id);
@@ -205,7 +207,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                     <button
                       onClick={async () => {
                         try {
-                          await commentService.deleteReply(reply.id);
+                          await jobService.deleteReply(reply.id);
                           toast({
                             title: "Respuesta eliminada",
                             description: "La respuesta ha sido eliminada correctamente"
