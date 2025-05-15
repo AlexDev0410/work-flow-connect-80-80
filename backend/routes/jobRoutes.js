@@ -23,6 +23,13 @@ router.put('/:jobId', jobController.updateJob);
 // Delete a job
 router.delete('/:jobId', jobController.deleteJob);
 
+// Comment routes
+router.post('/:jobId/comments', jobController.addComment);
+router.get('/:jobId/comments', jobController.getComments);
+router.delete('/comments/:commentId', jobController.deleteComment);
+router.post('/comments/:commentId/replies', jobController.addReply);
+router.delete('/replies/:replyId', jobController.deleteReply);
+
 // Añadir este log para depuración
 console.log('Job routes initialized');
 

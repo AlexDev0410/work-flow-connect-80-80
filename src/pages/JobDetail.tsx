@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import MainLayout from '@/components/Layout/MainLayout';
@@ -63,7 +62,18 @@ const JobDetail = () => {
         // Si no está en el contexto, hacer una llamada a la API directamente
         if (!jobData) {
           console.log("Job not found in context, fetching from API directly");
-          jobData = await jobService.getJobById(jobId);
+          try {
+            const fetchedJob = await jobService.getJobById(jobId);
+            if (fetchedJob) {
+              jobData = fetchedJob;
+            } else {
+              throw new Error("Job not found in API");
+            }
+          } catch (error) {
+            console.error("Error fetching job from API:", error);
+            setError("No se pudo encontrar la propuesta solicitada");
+            throw error;
+          }
         }
         
         if (jobData) {
@@ -112,7 +122,7 @@ const JobDetail = () => {
   // Cargar comentarios del trabajo
   useEffect(() => {
     const loadComments = async () => {
-      if (!jobId || !job) return;
+      if (!jobId) return;
       
       setIsLoadingComments(true);
       try {
@@ -133,10 +143,8 @@ const JobDetail = () => {
       }
     };
     
-    if (job) {
-      loadComments();
-    }
-  }, [jobId, job]);
+    loadComments();
+  }, [jobId]);
 
   // Obtener información del propietario de la propuesta
   const jobOwner = job ? getUserById(job.userId) : undefined;
@@ -321,30 +329,11 @@ const JobDetail = () => {
       }
     } catch (error) {
       console.error("Error al enviar comentario:", error);
-      
-      // Intentar con el servicio alternativo si el primero falla
-      try {
-        const fallbackComment = await jobService.addComment(job.id, commentText);
-        
-        if (fallbackComment) {
-          setComments(prevComments => [fallbackComment, ...(prevComments || [])]);
-          setCommentText('');
-          
-          toast({
-            title: "Comentario enviado",
-            description: "Tu comentario ha sido publicado correctamente"
-          });
-        } else {
-          throw new Error("No se pudo crear el comentario (fallback)");
-        }
-      } catch (fallbackError) {
-        console.error("Error en fallback de comentario:", fallbackError);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "No se pudo enviar el comentario"
-        });
-      }
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo enviar el comentario"
+      });
     } finally {
       setIsSubmittingComment(false);
     }

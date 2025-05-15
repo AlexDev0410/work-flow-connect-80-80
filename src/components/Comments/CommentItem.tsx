@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,6 @@ import { MessageCircle, Trash } from 'lucide-react';
 import { CommentType, ReplyType } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { commentService } from '@/services/api';
-import { jobService } from '@/lib/jobService';
 import { toast } from '@/components/ui/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -36,15 +34,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     
     setIsSubmittingReply(true);
     try {
-      // First try with commentService
-      let newReply;
-      try {
-        newReply = await commentService.addReply(comment.id, replyContent);
-      } catch (error) {
-        console.error('Error con commentService:', error);
-        // Fallback to jobService
-        newReply = await jobService.addReply(comment.id, replyContent);
-      }
+      const newReply = await commentService.addReply(comment.id, replyContent);
       
       // Actualizar la interfaz con la nueva respuesta
       if (onReplyAdded && newReply) {
@@ -73,14 +63,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     if (!currentUser || currentUser.id !== comment.userId) return;
     
     try {
-      // First try with commentService
-      try {
-        await commentService.deleteComment(comment.id);
-      } catch (error) {
-        console.error('Error con commentService:', error);
-        // Fallback to jobService
-        await jobService.deleteComment(comment.id);
-      }
+      await commentService.deleteComment(comment.id);
       
       if (onDelete) {
         onDelete(comment.id);
@@ -92,16 +75,10 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       });
     } catch (error) {
       console.error('Error al eliminar comentario:', error);
-      
-      // Even if API call fails, update UI to provide better UX
-      if (onDelete) {
-        onDelete(comment.id);
-      }
-      
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Error al eliminar el comentario, pero se ha actualizado la interfaz"
+        description: "Error al eliminar el comentario"
       });
     }
   };

@@ -1,8 +1,9 @@
+
 import axios from 'axios';
 import { UserType, JobType, ChatType, MessageType, FileType, CommentType, ReplyType } from '@/types';
 
 // Configurando la instancia de axios
-const api = axios.create({
+export const api = axios.create({
   baseURL: 'http://localhost:5000/api',
 });
 
