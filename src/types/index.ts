@@ -1,3 +1,4 @@
+
 export interface UserType {
   id: string;
   name: string;
@@ -47,6 +48,9 @@ export interface MessageType {
     size?: number;
     uploadedBy?: string;
   };
+  // Added for MessageSearch component
+  chatName?: string;
+  chatIsGroup?: boolean;
 }
 
 export interface JobType {
@@ -58,31 +62,40 @@ export interface JobType {
   skills: string[];
   status: 'open' | 'in progress' | 'completed';
   userId: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  userName?: string;
+  userPhoto?: string;
+  comments?: CommentType[];
 }
 
 export interface CommentType {
   id: string;
   content: string;
+  text?: string;  // Added for compatibility
   userId: string;
   jobId: string;
   createdAt: string;
   updatedAt?: string;
   userName?: string;
+  userPhoto?: string;
   userAvatar?: string;
+  timestamp?: number | string;
   replies?: ReplyType[];
 }
 
 export interface ReplyType {
   id: string;
   content: string;
+  text?: string;  // Added for compatibility
   userId: string;
   commentId: string;
   createdAt: string;
   updatedAt?: string;
   userName?: string;
+  userPhoto?: string;
   userAvatar?: string;
+  timestamp?: number | string;
 }
 
 export interface FileType {

@@ -1,4 +1,3 @@
-
 import { JobType, CommentType, ReplyType } from '@/types';
 import { UserType } from '@/types';
 import axios from 'axios';
@@ -218,13 +217,13 @@ export const jobService = {
     }
   },
 
-  addComment: async (jobId: string, text: string): Promise<CommentType> => {
+  addComment: async (jobId: string, content: string): Promise<CommentType> => {
     try {
-      console.log(`Adding comment to job ${jobId}: ${text}`);
+      console.log(`Adding comment to job ${jobId}: ${content}`);
       
       // In a real implementation, this would be a backend call
       const response = await axios.post(`${API_URL}/jobs/${jobId}/comments`, {
-        text
+        content
       }, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`
@@ -244,8 +243,9 @@ export const jobService = {
         id: uuidv4(),
         userId: userInfo?.userId || 'unknown',
         jobId,
-        text,
-        content: text,
+        content,
+        text: content, // Add both text and content for compatibility
+        createdAt: new Date().toISOString(),
         timestamp: Date.now(),
         userName: userInfo?.name || 'Usuario',
         userPhoto: userInfo?.photoURL || '',
@@ -264,8 +264,9 @@ export const jobService = {
         id: uuidv4(),
         userId: userInfo?.userId || 'unknown',
         jobId,
-        text,
-        content: text,
+        content,
+        text: content, // Add both text and content for compatibility
+        createdAt: new Date().toISOString(),
         timestamp: Date.now(),
         userName: userInfo?.name || 'Usuario',
         userPhoto: userInfo?.photoURL || '',
@@ -276,13 +277,13 @@ export const jobService = {
     }
   },
 
-  addReply: async (commentId: string, text: string): Promise<ReplyType> => {
+  addReply: async (commentId: string, content: string): Promise<ReplyType> => {
     try {
-      console.log(`Adding reply to comment ${commentId}: ${text}`);
+      console.log(`Adding reply to comment ${commentId}: ${content}`);
       
       // In a real implementation, this would be a backend call
       const response = await axios.post(`${API_URL}/comments/${commentId}/replies`, {
-        text
+        content
       }, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`
@@ -302,8 +303,9 @@ export const jobService = {
         id: uuidv4(),
         userId: userInfo?.userId || 'unknown',
         commentId,
-        text,
-        content: text,
+        content,
+        text: content, // Add both text and content for compatibility
+        createdAt: new Date().toISOString(),
         timestamp: Date.now(),
         userName: userInfo?.name || 'Usuario',
         userPhoto: userInfo?.photoURL || '',
@@ -321,8 +323,9 @@ export const jobService = {
         id: uuidv4(),
         userId: userInfo?.userId || 'unknown',
         commentId,
-        text,
-        content: text,
+        content,
+        text: content, // Add both text and content for compatibility 
+        createdAt: new Date().toISOString(),
         timestamp: Date.now(),
         userName: userInfo?.name || 'Usuario',
         userPhoto: userInfo?.photoURL || '',

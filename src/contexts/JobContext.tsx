@@ -57,13 +57,16 @@ export const JobProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const allJobs = await jobService.getAllJobs();
       
-      // Asegurarse de que las fechas sean objetos Date
+      // Ensure all job objects have the required properties
       const processedJobs = allJobs.map(job => ({
         ...job,
-        createdAt: job.createdAt ? new Date(job.createdAt) : new Date(),
-        updatedAt: job.updatedAt ? new Date(job.updatedAt) : new Date(),
-        // Asegurarnos de que el nombre de usuario esté presente
-        userName: job.userName || 'Usuario desconocido'
+        // Convert dates to strings if they're Date objects
+        createdAt: job.createdAt instanceof Date ? job.createdAt.toISOString() : job.createdAt,
+        updatedAt: job.updatedAt instanceof Date ? job.updatedAt.toISOString() : job.updatedAt,
+        // Ensure userName is present
+        userName: job.userName || 'Usuario desconocido',
+        // Initialize comments array if it doesn't exist
+        comments: job.comments || []
       }));
       
       setJobs(processedJobs);
@@ -71,22 +74,21 @@ export const JobProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (currentUser) {
         const userJobsData = await jobService.getJobsByUser(currentUser.id);
-        // Procesar las fechas para trabajos del usuario
+        // Process dates for user jobs
         const processedUserJobs = userJobsData.map(job => ({
           ...job,
-          createdAt: job.createdAt ? new Date(job.createdAt) : new Date(),
-          updatedAt: job.updatedAt ? new Date(job.updatedAt) : new Date(),
-          // Asegurarnos de que el nombre de usuario esté presente
-          userName: job.userName || 'Usuario desconocido'
+          createdAt: job.createdAt instanceof Date ? job.createdAt.toISOString() : job.createdAt,
+          updatedAt: job.updatedAt instanceof Date ? job.updatedAt.toISOString() : job.updatedAt,
+          userName: job.userName || 'Usuario desconocido',
+          comments: job.comments || []
         }));
         setUserJobs(processedUserJobs);
 
-        // In a real implementation, we would fetch saved jobs from the backend
-        // This is a placeholder until that endpoint is implemented
+        // Set saved jobs (placeholder implementation)
         setSavedJobs([]);
       }
 
-      // For popular jobs, we're showing the first 3 most recent jobs
+      // For popular jobs, show the 3 most recent jobs
       const popularJobsTemp = processedJobs.slice(0, 3);
       setPopularJobs(popularJobsTemp);
     } catch (error) {
@@ -205,8 +207,8 @@ export const JobProvider = ({ children }: { children: React.ReactNode }) => {
       setJobs(prevJobs => {
         return prevJobs.map(job => {
           if (job.id === jobId) {
-            const updatedComments = [...(job.comments || []), comment];
-            return { ...job, comments: updatedComments };
+            const comments = job.comments || [];
+            return { ...job, comments: [...comments, comment] };
           }
           return job;
         });
@@ -247,8 +249,8 @@ export const JobProvider = ({ children }: { children: React.ReactNode }) => {
           if (job.id === jobId) {
             const updatedComments = job.comments?.map(comment => {
               if (comment.id === commentId) {
-                const updatedReplies = [...(comment.replies || []), reply];
-                return { ...comment, replies: updatedReplies };
+                const replies = comment.replies || [];
+                return { ...comment, replies: [...replies, reply] };
               }
               return comment;
             });

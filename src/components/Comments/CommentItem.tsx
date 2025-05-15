@@ -27,7 +27,6 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyContent, setReplyContent] = useState('');
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
   const { currentUser } = useAuth();
 
@@ -83,7 +82,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     }
   };
 
-  const formatDateTime = (timestamp: number | string) => {
+  const formatDateTime = (timestamp: number | string | undefined) => {
     if (!timestamp) return '';
     
     const date = typeof timestamp === 'number' 
@@ -96,12 +95,15 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     });
   };
 
+  // Get comment content (handle both content and text properties)
+  const commentContent = comment.content || comment.text || '';
+
   return (
     <div className="space-y-3">
       {/* Comentario principal */}
       <div className="flex space-x-3">
         <Avatar className="h-8 w-8">
-          <AvatarImage src={comment.userPhoto} alt={comment.userName} />
+          <AvatarImage src={comment.userPhoto || comment.userAvatar} alt={comment.userName} />
           <AvatarFallback className="bg-wfc-purple-medium text-white">
             {comment.userName?.charAt(0).toUpperCase() || 'U'}
           </AvatarFallback>
@@ -113,7 +115,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
               {formatDateTime(comment.timestamp || comment.createdAt)}
             </span>
           </div>
-          <p className="text-gray-700 text-sm mt-1">{comment.text || comment.content}</p>
+          <p className="text-gray-700 text-sm mt-1">{commentContent}</p>
           
           <div className="flex mt-1 space-x-4">
             {currentUser && (
@@ -172,50 +174,55 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       {/* Respuestas */}
       {comment.replies && comment.replies.length > 0 && (
         <div className="ml-11 space-y-3 border-l-2 border-gray-100 pl-3">
-          {comment.replies.map((reply: ReplyType) => (
-            <div key={reply.id} className="flex space-x-3">
-              <Avatar className="h-6 w-6">
-                <AvatarImage src={reply.userPhoto} alt={reply.userName} />
-                <AvatarFallback className="bg-wfc-purple-light text-white text-xs">
-                  {reply.userName?.charAt(0).toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex justify-between">
-                  <h4 className="font-medium text-xs">{reply.userName}</h4>
-                  <span className="text-xs text-gray-500">
-                    {formatDateTime(reply.timestamp || reply.createdAt)}
-                  </span>
+          {comment.replies.map((reply: ReplyType) => {
+            // Get reply content (handle both content and text properties)
+            const replyContent = reply.content || reply.text || '';
+            
+            return (
+              <div key={reply.id} className="flex space-x-3">
+                <Avatar className="h-6 w-6">
+                  <AvatarImage src={reply.userPhoto || reply.userAvatar} alt={reply.userName} />
+                  <AvatarFallback className="bg-wfc-purple-light text-white text-xs">
+                    {reply.userName?.charAt(0).toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <div className="flex justify-between">
+                    <h4 className="font-medium text-xs">{reply.userName}</h4>
+                    <span className="text-xs text-gray-500">
+                      {formatDateTime(reply.timestamp || reply.createdAt)}
+                    </span>
+                  </div>
+                  <p className="text-gray-700 text-xs mt-1">{replyContent}</p>
+                  
+                  {currentUser && currentUser.id === reply.userId && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          await commentService.deleteReply(reply.id);
+                          toast({
+                            title: "Respuesta eliminada",
+                            description: "La respuesta ha sido eliminada correctamente"
+                          });
+                          // Actualizar la UI se manejará a través de una refrescada
+                        } catch (error) {
+                          toast({
+                            variant: "destructive",
+                            title: "Error",
+                            description: "No se pudo eliminar la respuesta"
+                          });
+                        }
+                      }}
+                      className="text-xs text-red-500 mt-1 flex items-center"
+                    >
+                      <Trash className="h-3 w-3 mr-1" />
+                      Eliminar
+                    </button>
+                  )}
                 </div>
-                <p className="text-gray-700 text-xs mt-1">{reply.text || reply.content}</p>
-                
-                {currentUser && currentUser.id === reply.userId && (
-                  <button
-                    onClick={async () => {
-                      try {
-                        await commentService.deleteReply(reply.id);
-                        toast({
-                          title: "Respuesta eliminada",
-                          description: "La respuesta ha sido eliminada correctamente"
-                        });
-                        // Actualizar la UI se manejará a través de una refrescada
-                      } catch (error) {
-                        toast({
-                          variant: "destructive",
-                          title: "Error",
-                          description: "No se pudo eliminar la respuesta"
-                        });
-                      }
-                    }}
-                    className="text-xs text-red-500 mt-1 flex items-center"
-                  >
-                    <Trash className="h-3 w-3 mr-1" />
-                    Eliminar
-                  </button>
-                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
