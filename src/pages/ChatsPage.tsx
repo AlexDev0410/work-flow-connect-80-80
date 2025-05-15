@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import MainLayout from '@/components/Layout/MainLayout';
 import { useChat } from '@/contexts/ChatContext';
@@ -26,7 +25,8 @@ import {
   Trash2,
   MoreVertical,
   Check,
-  X
+  X,
+  LogOut
 } from 'lucide-react';
 import { ChatGroupForm } from '@/components/ChatGroupForm';
 import { UserSelectDialog } from '@/components/UserSelectDialog';
@@ -54,7 +54,8 @@ const ChatsPage = () => {
     getMessages,
     updateMessage,
     deleteMessage,
-    searchMessages
+    searchMessages,
+    leaveChat
   } = useChat();
   const { currentUser } = useAuth();
   const { getUserById } = useData();
@@ -69,6 +70,7 @@ const ChatsPage = () => {
   const [isConfirmingDelete, setIsConfirmingDelete] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [isConfirmingLeaveChat, setIsConfirmingLeaveChat] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Get messages for the active chat
@@ -274,6 +276,21 @@ const ChatsPage = () => {
           }
         }, 500);
       }
+    }
+  };
+  
+  // Función para manejar la salida de un chat grupal
+  const handleLeaveChat = async (chatId: string) => {
+    try {
+      await leaveChat(chatId);
+      setIsConfirmingLeaveChat(null);
+    } catch (error) {
+      console.error('Error al salir del chat:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo salir del chat grupal."
+      });
     }
   };
   
@@ -501,20 +518,37 @@ const ChatsPage = () => {
                   </TooltipProvider>
                   
                   {activeChat.isGroup && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => setIsAddingParticipant(true)}
-                          >
-                            <UserPlus className="h-5 w-5" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Añadir participante</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => setIsAddingParticipant(true)}
+                            >
+                              <UserPlus className="h-5 w-5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Añadir participante</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => setIsConfirmingLeaveChat(activeChat.id)}
+                            >
+                              <LogOut className="h-5 w-5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Salir del grupo</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </>
                   )}
                 </div>
                 
@@ -833,6 +867,30 @@ const ChatsPage = () => {
           excludeUsers={activeChat.participants}
         />
       )}
+      
+      {/* Dialog para confirmar salir del chat grupal */}
+      <Dialog 
+        open={!!isConfirmingLeaveChat} 
+        onOpenChange={(open) => !open && setIsConfirmingLeaveChat(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Salir del chat grupal</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>¿Estás seguro que deseas salir de este chat grupal? No podrás volver a entrar a menos que alguien te añada nuevamente.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsConfirmingLeaveChat(null)}>Cancelar</Button>
+            <Button 
+              variant="destructive"
+              onClick={() => isConfirmingLeaveChat && handleLeaveChat(isConfirmingLeaveChat)}
+            >
+              Salir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       {/* Edit message dialog */}
       {editingMessage && !isConfirmingDelete && (

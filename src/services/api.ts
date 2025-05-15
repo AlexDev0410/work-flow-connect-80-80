@@ -124,11 +124,15 @@ export const chatService = {
   },
   
   async addUsersToChat(chatId: string, userIds: string[]): Promise<void> {
-    await api.post(`/chats/${chatId}/participants`, { userIds });
+    await api.post(`/chats/${chatId}/users`, { userIds });
   },
   
   async removeUserFromChat(chatId: string, userId: string): Promise<void> {
     await api.delete(`/chats/${chatId}/participants/${userId}`);
+  },
+  
+  async leaveChat(chatId: string): Promise<void> {
+    await api.post(`/chats/${chatId}/leave`);
   }
 };
 

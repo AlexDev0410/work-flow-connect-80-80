@@ -27,6 +27,7 @@ export interface ChatContextType {
   updateMessage: (messageId: string, content: string) => Promise<void>;
   deleteMessage: (messageId: string) => Promise<void>;
   searchMessages: (query: string, chatId?: string) => Promise<MessageType[]>;
+  leaveChat: (chatId: string) => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | null>(null);
@@ -770,6 +771,36 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Nueva función para salir de un chat grupal
+  const leaveChat = async (chatId: string): Promise<void> => {
+    if (!currentUser) return;
+    
+    try {
+      // Llamar a la API para salir del chat
+      await chatService.leaveChat(chatId);
+      
+      // Eliminar el chat de la lista de chats
+      setChats((prev) => prev.filter(chat => chat.id !== chatId));
+      
+      // Si el chat activo es el que se está abandonando, establecerlo a null
+      if (activeChat?.id === chatId) {
+        setActiveChat(null);
+      }
+      
+      toast({
+        title: "Chat abandonado",
+        description: "Has salido del chat grupal exitosamente"
+      });
+    } catch (error) {
+      console.error('Error al salir del chat:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo salir del chat grupal"
+      });
+    }
+  };
+
   return (
     <ChatContext.Provider
       value={{
@@ -792,7 +823,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loadMessages,
         updateMessage,
         deleteMessage,
-        searchMessages
+        searchMessages,
+        leaveChat
       }}
     >
       {children}
